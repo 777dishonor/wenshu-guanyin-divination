@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- 观音 · 仪轨
+     与文殊仪轨同一套规格（DESIGN.md §11）：字号 21/16/14 + 13 注、栏名 600 墨黑、
+     .duo 左藏右汉、右边界三条。差异只有两处：
+       ① 身份色是纯白，纯白做按钮在白底上立不住，主按钮改深灰实底（与所问、掷骰同色）
+       ② 对照句 13 组（观想 5 + 祈请 9）是文殊的三倍。**字号一个都不缩**：藏文 16、汉译 14，
+         与文殊仪轨同一档。省高度只从三处结构性的地方拿：
+         1) .duo 的 align-items 用 start，不用 baseline —— baseline 会让两列的基线错开，
+            行盒按「更深的那个」再加高，实测每组白付 3.7px（祈请 9 组共 34，观想块 20）。
+            改 start 之后汉译仍贴每组第一行，对照关系不变
+         2) 藏文行高 1.4 → 1.1（行盒由字体度量决定，1.4 时实测是字号的 1.65 倍，多出来全是空账）
+         3) 汉译行高 1.45 → 1.2（祈请 9 组的高度其实由汉译定，不是藏文）
+         **代价**：390×844 余 61、375×812 余 29 仍是一屏；390×700 这类矮窗要往下滚约 80。
+         这一版宁可让人滚一点，也不缩字 —— 前面有一版为了塞进矮窗把藏文压到 13.5，
+         读起来很难受，退回来了
+     藏文只做了两件事：去重复元音（ིི→ི 等，叠写元音不是合法藏文）、
+     补回第一句丢了的两处元音（ཉད→ཉིད、རྗ→རྗེ，下一行音译「涅」「杰」可对）。 -->
+<title>观音仪轨</title>
+<style>
+:root{
+  --bg:#F7F7F5; --warm:#FBE8BF;
+  --ink:#1B1B1A; --ink2:#666662;
+  --zhu:#A33E2C; --line:#E5E5E1;
+  --sans:-apple-system,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+  --tib:"Tibetan","Noto Serif Tibetan","Microsoft Himalaya",serif;
+}
+@font-face{font-family:Tibetan;src:url(../assets/tibetan.woff2) format("woff2");font-display:swap}
+*{box-sizing:border-box;margin:0;padding:0}
+:focus-visible{outline:2px solid var(--zhu); outline-offset:2px; border-radius:3px}
+
+body{
+  background:var(--bg); color:var(--ink);
+  font:16px/1.6 var(--sans); letter-spacing:.01em;
+  max-width:420px; margin:0 auto; padding:0 20px calc(5px + env(safe-area-inset-bottom));
+  min-height:100vh; -webkit-font-smoothing:antialiased;
+}
+/* 莲瓣暗纹：与首页同一张，压到只在不经意间看出 */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:-1;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cg fill='none' stroke='%235c5a52' stroke-width='.5' opacity='.035'%3E%3Cpath d='M40 23c4.8 5.8 4.8 11 0 16.5-4.8-5.5-4.8-10.7 0-16.5Z'/%3E%3Cpath d='M40 56.5C35.2 50.7 35.2 45.5 40 40c4.8 5.5 4.8 10.7 0 16.5Z'/%3E%3Cpath d='M23.5 40c5.8-4.8 11-4.8 16.5 0-5.5 4.8-10.7 4.8-16.5 0Z'/%3E%3Cpath d='M56.5 40C50.7 44.8 45.5 44.8 40 40c5.5-4.8 10.7-4.8 16.5 0Z'/%3E%3Ccircle cx='32' cy='32' r='1.1'/%3E%3C/g%3E%3C/svg%3E") 0 0/80px 80px;
+}
+
+/* 顶栏：内屏＝左返回、右屏名。字号字重与首页同一个 13/500。
+   宽屏预留滚动条槽位，否则一出现滚动条、居中的整页就左移 */
+@media (min-width:440px){html{scrollbar-gutter:stable both-edges}}
+.bar{display:flex; align-items:center; gap:13px; height:44px;
+  border-bottom:1px solid var(--line);
+  font:500 13px/1.4 var(--sans); letter-spacing:.02em}
+.back{flex:1; display:flex; align-items:center; gap:3px;
+  color:var(--ink2); text-decoration:none}
+.back i{font-style:normal; font-size:16px; line-height:1; margin-top:-2px}
+.bar .tr{color:var(--ink)}
+
+/* 栏目名：一屏之内它是路标，要一眼找到。与正文同号（14）只靠字重和颜色
+   拉开——序号朱砂、栏名墨黑 600。字号不动是为了全屏只有 21/16/14 三档 */
+.no{display:grid; grid-template-columns:14px 1fr; column-gap:9px;
+  margin:13px 0 5px; font-size:14px; font-weight:600;
+  letter-spacing:.04em; color:var(--ink)}
+.no i{font-style:normal; color:var(--zhu)}
+/* 栏名后的注：跟在栏名同一行，13px/400/浅一档。
+   注在括号里，是为了和「祈请（念一遍）」「缘起咒（三遍或七遍）」同一个句式，
+   只是长注压小一档——栏名才立得住 */
+.hint{font-size:13px; font-weight:400; letter-spacing:.02em; color:var(--ink2)}
+
+/* 观想是说明不是诵文：14/1.55。全篇最大的字留给心咒的藏文，
+   层级才不会全篇平推。
+   这里必须两端对齐：左对齐的自然断行右端停在 346、末行 303，与下面
+   贴到 370 的译文并排，页面右侧就是三条线。中文 justify 只微调字间，
+   不会像西文那样出现大空档 */
+.tx{font-size:14px; line-height:1.55; text-align:justify; text-justify:inter-ideograph}
+
+/* 分栏对照：左藏文自适应、右汉译（或音译）按内容取宽并靠右。
+   右栏是 auto 而不是 1fr —— 这样每一栏的右缘都落在同一条内容边界上，
+   整页右侧才是一条直线，而不是被长短不一的译文啃出犬牙 */
+.duo{display:grid; grid-template-columns:1fr auto; column-gap:12px;
+  align-items:start; margin-top:2px}
+/* 四句祈请共用一个右栏宽：首句加了「嗡」之后，逐句自适应会把汉译的左缘
+   啃成锯齿。row-gap 顶替四个独立网格之间的 margin，高度不变 */
+.duo.rows{row-gap:12px}
+/* 观想是长句：左右对照把左栏压到 215，五句里有三句要折，第二行只剩
+   「དཀར།།」两三个音节，看着像孤字。这一节改成上下 —— 藏文占满 353 一行放下，
+   汉译右对齐跟一行，总高反而比折行矮（5×41 vs 3×53.6+2×32.8） */
+.duo.stack{grid-template-columns:1fr; row-gap:0}
+.duo.stack .zh{margin-top:3px}
+.duo.stack .tib{margin-top:13px}
+.duo.stack .tib:first-child{margin-top:0}
+.duo .tib{font-size:16px; line-height:1.3; overflow-wrap:break-word}
+/* 藏文的行盒由字体度量决定，line-height 1.4 时实测每组占 26.4（=1.65×字号），
+   多出来的四分之一像素全是升部与降部的空账。收到 1.1 不碰字——藏文没有汉字那样的
+   行间呼吸需求，它的加字都长在字身上 */
+/* 汉译与音译同一档（14/墨色）：它们是读者真正要读懂的译文和读音，
+   不是注脚。右对齐让长短不一的句子右端都落在同一条边界上 */
+.duo .zh,.duo .ph{font-size:14px; line-height:1.3; letter-spacing:.02em;
+  text-align:right}
+/* 祈请那 9 组藏文各只占一行，每组的高度其实由这一行的汉译决定（26px → 22px）。
+   收汉译的行高，比继续压藏文划算，且中文单行不受行距影响 */
+/* 音译只在全角空格处断——按字断会把「黑顿得」拆成「黑 / 顿得」，读错音。
+   限宽 176：最长的音节组「黑顿得堪达塔噶多哈亚挖达」14px 下要 171，
+   卡在 168 会把它从中间劈开；再宽则左栏藏文被吃到只剩几个字的位置 */
+.duo .ph{word-break:keep-all; overflow-wrap:anywhere; max-width:176px}
+
+/* 心咒：音译跟在藏文同一行，当注音用。藏文不许被压缩折行。
+   space-between 把音译推到右边界——否则这一行左半截有字、右半截空着，
+   全页右侧就断在这里 */
+.inl{display:flex; justify-content:space-between; align-items:baseline;
+  gap:10px; flex-wrap:wrap; margin-top:6px}
+.inl .tib{flex:none; line-height:1.4}
+
+/* 整宽藏文（心咒）：21。全篇唯一放大的一处，因它是真正要反复念的那句 */
+.tib{font-family:var(--tib); font-size:21px; line-height:1.4;
+  letter-spacing:0; overflow-wrap:anywhere}
+
+/* 音译 14/墨色：与汉译同档。原来 12.5/浅灰是当注脚排的，靠汉字猜不出
+   读音，得看不清反而没了用。行高压到 1.45 抵掉放大的开销 */
+.ph{margin-top:7px; font-size:14px; line-height:1.45; letter-spacing:.02em}
+.inl .ph{margin-top:0}
+
+/* 窄屏按屏宽降档：藏文分栏只有 165 宽，20px 会挤成四行 */
+/* 窄屏：藏文折行更多，只能再降一档才守得住一屏。断点从 370/340 上移到 380/365，
+   是因为 375（iPhone X 那一档）差 30px、360 差 20px，不降就是滚动条 */
+/* 只有 360 及以下才降一档：那一档宽度太窄，16px 会把一组拆成三行，
+   拆开之后反而更费高度。375 不降 —— 它是 iPhone X 那一档，字不能小 */
+@media (max-width:365px){.duo .tib{font-size:15px} .tib{font-size:19px}}
+
+/* 动作区：主按钮用首页文殊卡的暖黄底＋墨字，与「文殊＝暖黄」的身份色一致；
+   次按钮纯描边。暖黄是被填满的那块，所以它仍是主按钮 */
+.btn{display:flex; align-items:center; justify-content:center; width:100%; height:46px;
+  background:#4A4A46; color:#FAFAF7; text-decoration:none; border:0;
+  border-radius:10px; font:500 16px/1 var(--sans); letter-spacing:.04em;
+  cursor:pointer; transition:background .16s}
+.btn:hover{background:#3C3C39}
+.btn.line{margin-top:4px; background:none; color:var(--ink);
+  box-shadow:inset 0 0 0 1px var(--line)}
+.btn.line:hover{background:#F2F2EF}
+/* 主按钮＝深灰 #4A4A46。纯黑压得住但太死，纯白在浅底上又立不住；
+   深灰是这两者之间唯一既「实」又不抢正文的颜色 */
+
+/* 计数条：2px 进度 + 主按钮 + 计数 */
+.pg{height:2px; margin-top:10px; background:var(--line); border-radius:1px; overflow:hidden}
+.pg i{display:block; width:0; height:100%; background:var(--zhu)}
+.crow{display:flex; align-items:center; gap:11px; margin-top:8px}
+.crow .btn{flex:1}
+.cnum{font:500 13px/1.4 var(--sans); color:var(--ink2); letter-spacing:.02em;
+  font-variant-numeric:tabular-nums}
+.cnum b{color:var(--ink)}
+</style>
+
+<header class="bar">
+  <a class="back" href="index.html"><i>‹</i>返回</a>
+  <span class="tr">观音占卜法 · 仪轨</span>
+</header>
+
+<p class="no"><i>一</i><span>观想<span class="hint">（念一遍）</span></span></p>
+<div class="duo rows stack">
+<p class="tib">རང་ཉིད་ཐུགས་རྗེ་ཆེན་པོ་སྐུ་མདོག་དཀར།།</p><p class="zh">自身观为大悲观世音</p>
+<p class="tib">ཞལ་གཅིག་ཕྱག་གཉིས་གསལ་བྱེད་མེ་ལོང་བསྣམས།།</p><p class="zh">身白一面二臂持明镜</p>
+<p class="tib">མདུན་དུ་སྒྲོལ་དཀར་རིགས་བཞི་བསྲུང་མའི་ཚོགས།།</p><p class="zh">前方四部护法白度母</p>
+<p class="tib">རྣོ་མཐོང་གསལ་བའི་ལེགས་ཉེས་དྲང་ཤན་རྣམས།།</p><p class="zh">精确预测吉凶众尊主</p>
+<p class="tib">འབྱེད་པའི་དཔང་པོར་བཞུགས་ལ་གསལ་བར་སྟོན།།</p><p class="zh">祈为判断见证而明示</p>
+</div>
+
+<p class="no"><i>二</i><span>缘起咒<span class="hint">（念七遍）</span></span></p>
+<div class="duo">
+<p class="tib">ༀ་ཡེ་དྷརྨ་ཧེ་ཏུ་པྲ་བྷ་ཝཱ་ཧེ་ཏུནྟེ་ཥཱནྟ་ཐ་ག་ཏོ་ཧྱ་ཝ་དཏ།ཏྲ་ཥཱཉྩ་ཡོ་ན་རོ་དྷ་ཨེ་ཝཾ་པཱ་དཱི་མ་ཧཱ་ཤྲ་མ་ཎ་ཡེ་སྭ་ཧཱ།</p>
+<p class="ph">嗡　耶达玛黑德抓巴瓦　黑顿得堪达塔噶多哈亚挖达　得堪杂哟讷若达　诶望巴德玛哈夏玛呢耶索哈</p>
+</div>
+
+<p class="no"><i>三</i><span>祈请<span class="hint">（念一遍）</span></span></p>
+<div class="duo rows">
+<p class="tib">བསྭོ་བསྭོ།</p><p class="zh">索索</p>
+<p class="tib">དཀོན་མཆོག་གསུམ་དང་རྩ་བ་གསུམ།།</p><p class="zh">三宝尊及三根本</p>
+<p class="tib">ལྷ་མཆོག་ཐུགས་རྗེ་ཆེན་པོ་དང་།།</p><p class="zh">胜尊大悲观世音</p>
+<p class="tib">ཇོ་མོ་སྒྲོལ་དཀར་བསྲུང་མའི་ཚོགས།།</p><p class="zh">白度母及护法众</p>
+<p class="tib">ཡུལ་ལྷ་གཞི་བདག་མངོན་ཤེས་ཅན།།</p><p class="zh">具神通之当方神</p>
+<p class="tib">དེ་རིང་མོ་འདི་གསལ་བར་སྟོན།།</p><p class="zh">现今此卦说分明</p>
+<p class="tib">རྣོ་མཐོང་གསལ་བྱེད་ལེགས་ཉེས་རྣམས།།</p><p class="zh">精确预示凶吉尊</p>
+<p class="tib">དྲང་ཤན་ཕྱེས་ལ་ལེགས་པར་སྟོན།།</p><p class="zh">准确判断善宣示</p>
+<p class="tib">རྣོ་མཐོང་མོ་འདི་གསལ་བར་ཤོག</p><p class="zh">愿得明确之卦象</p>
+</div>
+
+<p class="no"><i>四</i><span>六字真言<span class="hint">（尽力念，满百遍或三百以上为佳）</span></span></p>
+<p class="inl"><span class="tib">ༀ་མ་ཎི་པདྨེ་ཧཱུྃ།</span><span class="ph">嗡 玛 呢 巴 美 吽</span></p>
+
+<div class="pg"><i id="bar"></i></div>
+<div class="crow">
+  <button class="btn" id="cnt" type="button">念一遍，记一次</button>
+  <span class="cnum"><b id="num">0</b> / 108</span>
+</div>
+<a class="btn line" href="gyask.html">仪轨已毕，请问所问之事</a>
+
+<script>
+/* 计数：点一次加一，顶那条 2px 进度条跟着走。108 遍满格后条不再长，数字照常加 */
+var n=0, bar=document.getElementById("bar"), num=document.getElementById("num");
+document.getElementById("cnt").onclick=function(){
+  num.textContent=++n;
+  bar.style.width=Math.min(n/108*100, 100)+"%";
+};
+</script>

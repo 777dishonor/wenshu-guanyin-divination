@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- 所问屏 demo · v0.7
+     顶栏担屏名，不另设 26px 标题。主体＝白描唐卡＋观想原文＋输入框＋勾选＋主按钮。
+     唐卡用 multiply 化掉白底，不抠图。0 行 JS。 -->
+<title>所问</title>
+<style>
+:root{
+  --bg:#F7F7F5; --card:#FFFFFF; --warm:#FBE8BF;
+  --ink:#1B1B1A; --ink2:#666662;
+  --zhu:#A33E2C; --slate:#56564F; --line:#E5E5E1;
+  --sans:-apple-system,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+:focus-visible{outline:2px solid var(--zhu); outline-offset:2px; border-radius:3px}
+
+body{
+  background:var(--bg); color:var(--ink);
+  font:16px/1.6 var(--sans); letter-spacing:.01em;
+  max-width:420px; margin:0 auto; padding:0 20px calc(14px + env(safe-area-inset-bottom));
+  min-height:100vh; -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:-1;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cg fill='none' stroke='%235c5a52' stroke-width='.5' opacity='.035'%3E%3Cpath d='M40 23c4.8 5.8 4.8 11 0 16.5-4.8-5.5-4.8-10.7 0-16.5Z'/%3E%3Cpath d='M40 56.5C35.2 50.7 35.2 45.5 40 40c4.8 5.5 4.8 10.7 0 16.5Z'/%3E%3Cpath d='M23.5 40c5.8-4.8 11-4.8 16.5 0-5.5 4.8-10.7 4.8-16.5 0Z'/%3E%3Cpath d='M56.5 40C50.7 44.8 45.5 44.8 40 40c5.5-4.8 10.7-4.8 16.5 0Z'/%3E%3Ccircle cx='32' cy='32' r='1.1'/%3E%3C/g%3E%3C/svg%3E") 0 0/80px 80px;
+}
+
+/* 顶栏：内屏＝左返回、右屏名，与首页同一个 13/500。
+   宽屏预留滚动条槽位，否则一出现滚动条、居中的整页就左移 */
+@media (min-width:440px){html{scrollbar-gutter:stable both-edges}}
+.bar{display:flex; align-items:center; gap:13px; height:52px;
+  border-bottom:1px solid var(--line);
+  font:500 13px/1.4 var(--sans); letter-spacing:.02em}
+.back{flex:1; display:flex; align-items:center; gap:3px;
+  color:var(--ink2); text-decoration:none}
+.back i{font-style:normal; font-size:16px; line-height:1; margin-top:-2px}
+.bar .tr{color:var(--ink)}
+
+/* 观想所缘：白描唐卡。multiply 把纯白底化掉，只剩金线落在纸面上——
+   不用抠图、不用透明 PNG，一行属性就够。
+   高度取「42vh」与「视口高减下方固定块」的较小值：前者是原来定下的比例（唐卡仍然是全屏最大的一块），
+   后者保证视口一矮（预览窗、老机型）图自己让位，不会把按钮顶出屏幕长出滚动条 */
+.yao{display:block; margin:14px auto 0;
+  height:clamp(150px, min(42vh, calc(100vh - 430px)), 360px);
+  width:auto; mix-blend-mode:multiply}
+/* 320 屏窄，原文与注都要多折一行，固定块更高，再让一档 */
+@media (max-width:340px){.yao{height:clamp(140px, min(42vh, calc(100vh - 470px)), 340px)}}
+
+/* 开屏第一段是原文，用墨色；界面自己的话一律墨灰。同号，靠颜色分主次。
+   justify：原文是段落，右端要齐；中文 justify 只微调字间，不产生大空档。
+   pretty：360 以下会甩出「示。」两个字的孤行，它专门收拾这种末行 */
+.txt{margin-top:16px; font-size:14px; line-height:1.7; color:var(--ink);
+  text-align:justify; text-justify:inter-ideograph; text-wrap:pretty}
+
+/* 输入框＝白色卡片本体，不是「表单控件」：与说明卡同族（白底/圆角 12/1px 线）。
+   高 80：这一屏只有这一件事要做，它得是屏幕上最大的一块。
+   用 textarea 而不是 input，是因为占位的那句有 27 字，单行 input 只会截断，
+   只有 textarea 会让它折成两行、完整显示 */
+#ask{display:block; width:100%; height:72px; margin-top:12px; padding:10px 16px;
+  font:400 17px/1.45 var(--sans); letter-spacing:.01em; color:var(--ink);
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  outline:none; resize:none; overflow:auto; transition:border-color .16s}
+/* 占位符也是文字：按 §7 第 6 条只用 --ink2，不用另调一个灰。
+   keep-all 只作用在占位符上（正文打字仍然逐字折行）：27 字那句默认会断在
+   「顺|利」中间，按标点断才读得顺 */
+#ask::placeholder{color:var(--ink2); word-break:keep-all; font-size:13px}
+/* 23 字在 360 的内宽 288 里差 11px 就折行，这一档把占位符再收一号，保住一行 */
+@media (max-width:370px){#ask::placeholder{font-size:12px}}
+#ask:focus{border-color:var(--slate)}
+
+/* 勾选行：44 高保证点得中；accent 用 --slate —— 朱砂是身份色，勾选是操作态 */
+.chk{display:flex; align-items:center; gap:10px; min-height:44px; margin-top:12px;
+  font-size:14px; cursor:pointer}
+.chk input{width:18px; height:18px; margin:0; accent-color:var(--slate); cursor:pointer}
+
+/* 字段下方的隐私注：一句，320 宽也放得下 */
+.hint{margin-top:6px; font-size:13px; line-height:1.6; color:var(--ink2)}
+
+/* 动作区：全宽 52，暖黄底墨字（文殊身份色），与仪轨屏同一个主按钮 */
+.btn{display:flex; align-items:center; justify-content:center; width:100%; height:52px;
+  margin-top:18px; background:var(--warm); color:var(--ink);
+  border:0; border-radius:10px; font:500 16px/1 var(--sans); letter-spacing:.04em;
+  cursor:pointer; transition:background .16s}
+.btn:hover{background:#F7DCA6}
+</style>
+
+<header class="bar">
+  <a class="back" href="ritual.html"><i>‹</i>返回</a>
+  <span class="tr">所问</span>
+</header>
+
+<img class="yao" src="wenshu.png" alt="文殊菩萨白描像">
+
+<p class="txt">此时，观想自己前方虚空中，文殊菩萨与众眷属金光灿烂，真实降临。心中忆念所占之事并猛烈祈祷，然后扔出骰子，结果之凶吉定可通过骰子明示。</p>
+
+<textarea id="ask" maxlength="60" placeholder="简单描述疑问，例如：远行是否顺利，未来健康如何"></textarea>
+<p class="hint">一事一问，占卜结果只存于本地，不上传。</p>
+
+<label class="chk"><input type="checkbox" id="major"><span>此为重大事宜，需占卜两次确定</span></label>
+
+<button class="btn" id="btnCast">掷骰起卦</button>
+
+<script>
+/* 所问走 URL 带到掷骰、再到卦象，不落存储：刷新、分享、后退都不会串。
+   留空也放行 —— 不知道问什么也能起卦，卦象页会省掉「所问」那一段 */
+var A=document.getElementById("ask");
+/* 唐卡高度在首帧定死：键盘一弹，100vh 变小，clamp 跟着重算，图就缩一截 ——
+   输入的时候图忽大忽小。量一次写成 inline px，此后视口怎么变它都不动 */
+var Y=document.querySelector(".yao"); Y.style.height=Y.getBoundingClientRect().height+"px";
+/* 从掷骰页按「返回」回来时，所问原样填回，不用重打一遍；
+   「占两次」的勾也一并恢复（掷骰页的返回链接会把 twice=1 带回来） */
+var P=new URLSearchParams(location.search);
+var q=(P.get("q")||"").trim();
+if (q) A.value=q;
+if (P.get("twice")==="1") document.getElementById("major").checked=true;
+/* 勾了「重大事宜」就把 twice 带下去 —— 原来这个勾选只画了个框，值从来没传出去，
+   所以勾与不勾都只占一遍 */
+document.getElementById("btnCast").onclick=function(){
+  location.href="cast.html?q="+encodeURIComponent(A.value.trim())
+    +(document.getElementById("major").checked?"&twice=1":"");
+};
+</script>

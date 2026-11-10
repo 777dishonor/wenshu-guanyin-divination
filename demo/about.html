@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- 关于页 · v1.1
+     一屏放三件事：我是谁、怎么联系、怎么关注公众号。
+     二维码是唯一的图像，其余全是字，字号只有 11/12/13/15/30 五档 -->
+<title>关于</title>
+<style>
+:root{
+  --bg:#F7F7F5; --card:#FFFFFF;
+  --ink:#1B1B1A; --ink2:#666662;
+  --zhu:#A33E2C; --slate:#56564F; --line:#E5E5E1;
+  --sans:-apple-system,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+@media (min-width:440px){html{scrollbar-gutter:stable both-edges}}
+::selection{background:#EBD6CF; color:var(--ink)}
+:focus-visible{outline:2px solid var(--zhu); outline-offset:2px; border-radius:3px}
+
+body{
+  background:var(--bg); color:var(--ink);
+  font:16px/1.6 var(--sans); letter-spacing:.01em;
+  max-width:420px; margin:0 auto; padding:0 20px calc(16px + env(safe-area-inset-bottom));
+  min-height:100vh; display:flex; flex-direction:column;
+  -webkit-font-smoothing:antialiased;
+}
+/* 与首页同一张莲瓣暗纹，保持是同一个东西的另一页 */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:-1;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cg fill='none' stroke='%235c5a52' stroke-width='.5' opacity='.035'%3E%3Cpath d='M40 23c4.8 5.8 4.8 11 0 16.5-4.8-5.5-4.8-10.7 0-16.5Z'/%3E%3Cpath d='M40 56.5C35.2 50.7 35.2 45.5 40 40c4.8 5.5 4.8 10.7 0 16.5Z'/%3E%3Cpath d='M23.5 40c5.8-4.8 11-4.8 16.5 0-5.5 4.8-10.7 4.8-16.5 0Z'/%3E%3Cpath d='M56.5 40C50.7 44.8 45.5 44.8 40 40c5.5-4.8 10.7-4.8 16.5 0Z'/%3E%3Ccircle cx='32' cy='32' r='1.1'/%3E%3C/g%3E%3C/svg%3E") 0 0/80px 80px;
+}
+
+.bar{display:flex; align-items:center; gap:13px; height:52px;
+  border-bottom:1px solid var(--line);
+  font:500 13px/1.4 var(--sans); letter-spacing:.02em}
+.back{flex:1; display:flex; align-items:center; gap:3px;
+  color:var(--ink2); text-decoration:none}
+.back i{font-style:normal; font-size:16px; line-height:1; margin-top:-2px}
+.bar .tr{color:var(--ink)}
+
+/* 身份：名字与头衔同一行（读作一个完整的称谓），下面一行小一号的副题。
+   三段只靠字号递降，不靠颜色分担层级 —— 全页绛红只留「微信」一处 */
+.who{padding:20px 0 0}
+.who .hd{display:flex; align-items:baseline; gap:7px}
+.who .n{font-size:28px; font-weight:500; line-height:1.15; letter-spacing:.1em}
+.who .r{font-size:15px; font-weight:500; letter-spacing:.1em}
+.who .s{margin-top:7px; font-size:13.5px; line-height:1.7; color:var(--ink2); letter-spacing:.04em}
+
+.card{margin-top:13px; border:1px solid var(--line); border-radius:12px; background:var(--card)}
+/* 微信号不进卡：一行字撑不起一个卡片，进卡反而孤立。
+   用一条细线接到身份区下面，读作「同一个人，下面是联系方式」 */
+.wx{display:flex; align-items:baseline; gap:12px; margin-top:15px; padding-top:12px;
+  border-top:1px solid var(--line)}
+.wx .k{flex:none; font:600 11px/1 var(--sans); letter-spacing:.16em; color:var(--zhu)}
+.wx .v{font-size:15.5px; letter-spacing:.02em; font-variant-numeric:tabular-nums}
+
+/* 公众号：整页唯一图像，四周留白比正文大，才像一张请柬。
+   码 158 是「够扫」与「不占地」的折中，再大就挤掉一屏。
+   高屏上让它 flex:1 吃掉余高 —— 空白关在卡片里，比摊在页底干净 */
+.gh{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:18px 16px; text-align:center}
+/* 码按视口高收放：高屏 190，矮屏自动收，好让整页始终一屏 */
+.gh img{width:min(190px,22vh); height:min(190px,22vh); display:block; margin:0 auto; border-radius:9px}
+.gh .nm{margin-top:11px; font-size:16px; font-weight:500; letter-spacing:.1em}
+.gh .d{margin-top:4px; font-size:13px; color:var(--ink2)}
+.gh .hint{margin-top:10px; font-size:12px; letter-spacing:.08em; color:var(--ink2)}
+
+.note{padding:10px 16px; font-size:13px; line-height:1.8; color:var(--ink2)}
+.note p+p{margin-top:4px}
+
+.ft{display:flex; align-items:baseline; gap:12px;
+  padding-top:12px; margin-top:11px; border-top:1px solid var(--line);
+  font:500 13px/1.4 var(--sans); letter-spacing:.02em; color:var(--ink2)}
+.card:last-of-type{margin-bottom:26px}
+.ft .d{flex:1}
+.ft .v{font-variant-numeric:tabular-nums; color:var(--ink)}
+</style>
+
+<header class="bar">
+  <a class="back" href="index.html"><i>‹</i>返回</a>
+  <span class="tr">关于</span>
+</header>
+
+<div class="who">
+  <p class="hd"><span class="n">D</span><span class="r">一个赛博魔法师</span></p>
+  <p class="s">流淌在魔法信息流之间</p>
+</div>
+
+<div class="wx">
+  <span class="k">微信</span><span class="v">dishonor777</span>
+</div>
+
+<div class="card gh">
+  <img src="kxys.png" alt="公众号「空行云水间」二维码">
+  <p class="nm">空行云水间</p>
+  <p class="d">个人随笔，抒发个人情感</p>
+  <p class="hint">关注公众号，与我在魔法里游舞</p>
+</div>
+
+<div class="card">
+  <div class="note">
+    <p>卦象文字依原著录入，未作改动；</p>
+    <p>占卜结果仅供参考，不作决断依据。</p>
+  </div>
+</div>
+
+<footer class="ft">
+  <span class="d">文殊占筮法 · 观音占卜法</span>
+  <span class="v">v1.1</span>
+</footer>

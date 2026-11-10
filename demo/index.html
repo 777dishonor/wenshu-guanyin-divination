@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- 视觉方向「种子字」首页 demo · v1.1
+     冷白灰底 + 满铺莲瓣暗纹；行首为本尊种子字，行尾为持物。
+     仅版面，无交互逻辑。 -->
+<title>文殊占筮法 · 观音占卜法</title>
+<style>
+:root{
+  --bg:#F7F7F5; --card:#FFFFFF; --warm:#FBE8BF;
+  --ink:#1B1B1A; --ink2:#666662;
+  --zhu:#A33E2C; --amber:#9C4F0E; --line:#E5E5E1; --slate:#56564F;
+  --sans:-apple-system,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+  --tib:"Tibetan","Noto Serif Tibetan","Microsoft Himalaya",serif;
+}
+@font-face{font-family:Tibetan;src:url(../assets/tibetan.woff2) format("woff2");font-display:swap}
+*{box-sizing:border-box;margin:0;padding:0}
+/* 宽屏下始终预留滚动条槽位（两侧对称，页面保持居中）：展开说明时页面变高，滚动条出现不再抽走
+   宽度、整页左跳。窄屏 body 占满，左缘只由 padding 决定，本来就不会位移，故不启用，布局不动 */
+@media (min-width:440px){html{scrollbar-gutter:stable both-edges}}
+::selection{background:#EBD6CF; color:var(--ink)}
+:focus-visible{outline:2px solid var(--zhu); outline-offset:2px; border-radius:3px}
+
+body{
+  background:var(--bg); color:var(--ink);
+  font:16px/1.6 var(--sans); letter-spacing:.01em;
+  max-width:420px; margin:0 auto; padding:0 20px calc(26px + env(safe-area-inset-bottom));
+  min-height:100vh; display:flex; flex-direction:column;
+  -webkit-font-smoothing:antialiased;
+}
+/* 莲瓣暗纹：64px 四方连续，压到只在不经意间看出 */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:-1;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cg fill='none' stroke='%235c5a52' stroke-width='.5' opacity='.035'%3E%3Cpath d='M40 23c4.8 5.8 4.8 11 0 16.5-4.8-5.5-4.8-10.7 0-16.5Z'/%3E%3Cpath d='M40 56.5C35.2 50.7 35.2 45.5 40 40c4.8 5.5 4.8 10.7 0 16.5Z'/%3E%3Cpath d='M23.5 40c5.8-4.8 11-4.8 16.5 0-5.5 4.8-10.7 4.8-16.5 0Z'/%3E%3Cpath d='M56.5 40C50.7 44.8 45.5 44.8 40 40c5.5-4.8 10.7-4.8 16.5 0Z'/%3E%3Ccircle cx='32' cy='32' r='1.1'/%3E%3C/g%3E%3C/svg%3E") 0 0/80px 80px;
+}
+
+/* 顶栏：署名与入口同一套字（13px / 500 / 墨黑） */
+.bar{display:flex; align-items:center; gap:13px; height:52px;
+  border-bottom:1px solid var(--line);
+  font:500 13px/1.4 var(--sans); letter-spacing:.02em; color:var(--ink)}
+.bar .tr{flex:1}
+/* 过往记录：右上入口。深灰实底 + 灰白字，正负形反转让它在浅底上一眼跳出来 */
+.log{display:flex; align-items:center; gap:5px; padding:3px 9px; font:inherit;
+  background:var(--slate); border:1px solid var(--slate); border-radius:999px;
+  color:#FAFAF7; text-decoration:none; cursor:pointer; transition:background .16s}
+.log:hover{background:#43433E; border-color:#43433E}
+/* 关于：次要入口，同形不同重——只描边不填底，不给它抢记录的注意力 */
+.log.gh{background:none; border-color:var(--line); color:var(--slate)}
+.log.gh:hover{background:none; border-color:var(--slate); color:var(--ink)}
+.log .chev{width:5px; height:5px;
+  border-top:1.2px solid currentColor; border-right:1.2px solid currentColor;
+  transform:rotate(45deg); opacity:.55}
+
+/* 标题 */
+.hero{padding:32px 0 0}
+.hero h1{font-size:26px; font-weight:500; line-height:1.46; letter-spacing:.04em}
+.hero p{margin-top:12px; font-size:13.5px; color:var(--ink2); letter-spacing:.08em}
+
+/* 卡片 */
+.card{margin-top:24px; border:1px solid var(--line); border-radius:12px;
+  overflow:hidden; background:var(--card)}
+.card>*+*{position:relative}
+.card>*+*::before{content:""; position:absolute; left:16px; right:0; top:0;
+  height:1px; background:var(--line)}
+
+.row{display:flex; align-items:center; gap:13px; width:100%;
+  padding:13px 16px; background:none; border:0; font:inherit; color:inherit;
+  text-align:left; cursor:pointer; transition:filter .16s; text-decoration:none}
+.row:hover{filter:brightness(.98)}
+.row.w{background:var(--warm)}
+/* 行首：本尊种子字 */
+.syl{flex:none; width:34px; font-family:var(--tib); font-size:29px; line-height:1.3;
+  color:var(--zhu)}
+/* 暖底行改用赭橙：与底色同色系但压深，靠明度而非色相区分 */
+.row.w .syl{color:var(--amber)}
+.row .txt{flex:1; min-width:0}
+.row .t{display:block; font-size:16.5px; font-weight:500; letter-spacing:.02em}
+.row .d{display:block; margin-top:3px; font-size:12.5px; color:var(--ink2)}
+/* 行尾：持物，代箭。取原图上半、放大、灰色半透明；绝对定位不占行高 */
+.row{position:relative}
+.mark{position:absolute; right:44px; top:50%; transform:translate(50%,-50%);
+  object-fit:contain; opacity:.45;
+  -webkit-mask:linear-gradient(#000 32%,transparent 90%);
+  mask:linear-gradient(#000 32%,transparent 90%)}
+.mark.sw{width:26px; height:66px}
+.mark.lo{width:52px; height:37px}
+@media (max-width:340px){
+  .mark{right:22px}
+  .mark.sw{width:17px; height:54px}
+  .mark.lo{width:42px; height:30px}
+}
+
+/* 折叠 */
+summary{list-style:none; display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; font-size:14px; cursor:pointer}
+summary::-webkit-details-marker{display:none}
+.plus{position:relative; flex:none; width:11px; height:11px; color:var(--ink)}
+.plus::before,.plus::after{content:""; position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%); background:currentColor; opacity:.55}
+.plus::before{width:11px; height:1px}
+.plus::after{width:1px; height:11px; transition:transform .18s}
+details[open] .plus::after{transform:translate(-50%,-50%) scaleY(0)}
+/* 展开：高度缓慢过渡；不支持的浏览器自动退回直接展开 */
+:root{interpolate-size:allow-keywords}
+details::details-content{height:0; overflow:hidden;
+  transition:height .4s cubic-bezier(.2,.7,.3,1), content-visibility .4s;
+  transition-behavior:allow-discrete}
+details[open]::details-content{height:auto}
+.b{padding:0 16px 16px; font-size:13.5px; line-height:1.85; color:var(--ink2)}
+.b p+p{margin-top:8px}
+.b b{font-weight:500; color:var(--ink)}
+
+/* 两块之间：等距夹一条线 */
+hr{border:0; height:1px; background:var(--line); margin:24px 0 0}
+/* 页脚：贴到页面底部；内容变长时至少留 48 */
+.ft{display:flex; align-items:baseline; gap:12px; margin-top:auto;
+  padding-top:14px; border-top:1px solid var(--line);
+  font:500 13px/1.4 var(--sans); letter-spacing:.02em; color:var(--ink2)}
+.card:last-of-type{margin-bottom:48px}
+.ft .d{flex:1}
+.ft .v{font-variant-numeric:tabular-nums; color:var(--ink)}
+</style>
+
+<header class="bar">
+  <span class="tr">索达吉堪布 译</span>
+  <a class="log" href="log.html">过往记录<span class="chev"></span></a>
+  <a class="log gh" href="about.html">关于<span class="chev"></span></a>
+</header>
+
+<div class="hero">
+  <h1>文殊占筮法<br>观音占卜法</h1>
+  <p>无需传承　简便易行</p>
+</div>
+
+<div class="card">
+  <!-- 两条通路都从这张卡片开始：仪轨 → 所问 → 掷骰 → 卦象 -->
+  <a class="row w" href="ritual.html">
+    <span class="syl">དྷཱིཿ</span>
+    <span class="txt">
+      <span class="t">文殊占筮法</span>
+      <span class="d">麦彭仁波切 造 · 两骰三十六卦</span>
+    </span>
+    <img class="mark sw" src="sword.png" alt="">
+  </a>
+  <a class="row" href="gyritual.html">
+    <span class="syl">ཧྲཱིཿ</span>
+    <span class="txt">
+      <span class="t">观音占卜法</span>
+      <span class="d">法王松赞干布 造 · 一骰六卦</span>
+    </span>
+    <img class="mark lo" src="lotus.png" alt="">
+  </a>
+</div>
+
+<hr>
+
+<div class="card">
+  <details>
+    <summary>关于这两种占卜法<span class="plus"></span></summary>
+    <div class="b">
+      <p>此二法只要发心清净、对三宝有至诚的信心，就会得到明确的宣示，为判断事态、取舍行止提供参考。</p>
+      <p><b>文殊占筮法</b>麦彭仁波切造。两枚四方骰，佛父黄骰先掷、佛母白骰后掷，成三十六卦。问家庭、谋略、财运、怨敌、行旅、疾病等，兼示化解之法。</p>
+      <p><b>观音占卜法</b>法王松赞干布造，全称《明镜论》。以念珠三粒一组取余数，成六卦。于失物、病人二事尤详。</p>
+    </div>
+  </details>
+  <details>
+    <summary>使用须知<span class="plus"></span></summary>
+    <div class="b">
+      <p>非常重要、或自己实在决定不了的事才打卦。不要为小事打卦，不要试探——试探是有过失的，也不要在没有信心的人面前宣扬，更不要为同一件事反复占问。</p>
+      <p>打卦时发心清净，内心不被五毒所染，万不可有害人之心。对结果以旷达之心对待，不必患得患失。不可借此牟利，也不可欺骗信众。</p>
+      <p>结果不好，应知乃前世业力所感，故需忏悔、祈祷、供养，改过迁善；结果甚佳也不必大喜过望。若似是而非，需知事在人为。</p>
+    </div>
+  </details>
+</div>
+
+<footer class="ft">
+  <span class="d">占卜结果仅供参考，不作决断依据</span>
+  <span class="v">v1.1</span>
+</footer>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- 观音 · 掷骰
+     与文殊掷骰屏同一套机器：立方体 .die>.tilt>.cube、俯视 −55°、右下出手、贴地滚一个棱长。
+     区别只有三处，因为观音的占法本身就不同：
+       ① 只有一枚骰子（六字真言六个音节，一数定一卦，没有佛父佛母）
+       ② 骰面是 ༀ མ ཎ པད མེ ཧཱུྃ，不是 阿 Ra 巴 匝 纳 德
+       ③ 结果是一个 ?n=（1–6），不是 ?f=&m=
+     骰子保持白（观音的身份色是纯白），不沿用文殊的金骰。 -->
+<title>掷骰</title>
+<style>
+:root{
+  --bg:#F7F7F5; --card:#FFFFFF; --warm:#FBE8BF; --gold:#E9BC63;
+  --ink:#1B1B1A; --ink2:#666662;
+  --zhu:#A33E2C; --brown:#6B3506; --slate:#56564F; --line:#E5E5E1;
+  --sans:-apple-system,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+  --tib:"Tibetan","Noto Serif Tibetan","Microsoft Himalaya",serif;
+  interpolate-size:allow-keywords;
+}
+@font-face{font-family:Tibetan;src:url(../assets/tibetan.woff2) format("woff2");font-display:block}
+*{box-sizing:border-box;margin:0;padding:0}
+:focus-visible{outline:2px solid var(--zhu); outline-offset:2px; border-radius:3px}
+
+body{
+  display:flex; flex-direction:column; min-height:100vh;
+  background:var(--bg); color:var(--ink);
+  font:16px/1.6 var(--sans); letter-spacing:.01em;
+  max-width:420px; margin:0 auto; padding:0 20px calc(14px + env(safe-area-inset-bottom));
+  -webkit-font-smoothing:antialiased;
+}
+html{overflow-x:hidden}
+@media (min-width:440px){html{scrollbar-gutter:stable both-edges}}
+.bar{display:flex; align-items:center; gap:13px; height:52px;
+  border-bottom:1px solid var(--line);
+  font:500 13px/1.4 var(--sans); letter-spacing:.02em}
+.back{flex:1; display:flex; align-items:center; gap:3px;
+  color:var(--ink2); text-decoration:none}
+.back i{font-style:normal; font-size:16px; line-height:1; margin-top:-2px}
+.bar .tr{color:var(--ink)}
+
+/* 提示：观想与掷骰的动作交代，不是诵文，用墨灰 */
+.txt{margin-top:16px; font-size:14px; line-height:1.6; color:var(--ink2);
+  text-align:justify; text-justify:inter-ideograph; text-wrap:pretty}
+
+/* ── 桌面 ─────────────────────────────────────────────────────────
+   stage 只是定位容器，自己不画东西；桌面是它正中的一个圆。
+   直径由 JS 按 min(宽,高) 量好写进 --d —— CSS 写不出 min(宽,高)，而骰子的落点必须落在
+   同一个圆里，尺寸只能有一个来源，否则改一处另一处就脱节。
+   圆要有「体」只靠三件事：暖灰面（与冷白页底拉开色相差）、左上光池、一圈压暗的边缘。 */
+.stage{position:relative; flex:1 0 auto; min-height:280px; margin:14px -20px 0; overflow:hidden}
+.stage::before{content:""; position:absolute; left:50%; top:50%; pointer-events:none;
+  width:var(--d,300px); height:var(--d,300px); transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:
+    radial-gradient(62% 56% at 38% 28%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.42) 46%, rgba(255,255,255,0) 78%),
+    radial-gradient(122% 122% at 50% 46%, #F5F3EC 0%, #EFEDE5 52%, #E3E0D5 100%);
+  box-shadow:0 1px 0 rgba(255,255,255,.85) inset,
+    0 -10px 20px rgba(27,27,26,.045) inset,
+    0 0 0 1px rgba(27,27,26,.055),
+    0 8px 22px rgba(27,27,26,.10)}
+
+/* ── 骰子 ─────────────────────────────────────────────────────────
+   三层各管一件事，缺一不可：
+     .die  位移（把中心放到桌面上的某一点）
+     .tilt 机位（−55° 俯视）。perspective 挂在外壳上，透视中心才是骰子自己
+     .cube 翻滚 + 定面。翻滚必须绕 tilt 的 z 轴，见文件头 ① */
+.die{position:absolute; left:0; top:0; width:50px; height:50px; margin:-25px 0 0 -25px;
+  perspective:900px; will-change:transform; z-index:2}
+.tilt{position:absolute; inset:0; transform-style:preserve-3d;
+  transform:rotateX(-55deg) rotateY(16deg)}
+.cube{position:absolute; inset:0; transform-style:preserve-3d; will-change:transform}
+
+/* 硬棱，不用卡片圆角。圆角会在棱上各留一个缺口，顶面与正面之间出现弧形白缝，
+   读作「六块圆角卡片叠起来」。三个面靠明度差分：顶 255 / 正 244 / 侧 233，不描边。
+   字占面宽的 0.55。33 时字顶到面边、投影之后笔画粘成一团（叠写的 ༀ、དྷཱིཿ 尤其），
+   收到 27 留出一圈白，3D 透视下反而认得出 */
+.cube b{position:absolute; inset:0; display:grid; place-items:center;
+  border-radius:2px; background:#F4F4F1; color:var(--ink);
+  font:400 27px/1.35 var(--tib);
+  padding-top:20px;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden}
+.cube b:nth-child(1),.cube b:nth-child(3){background:#F4F4F1}
+.cube b:nth-child(5){background:#FFFEFB}
+.cube b:nth-child(2),.cube b:nth-child(4){background:#E9E9E4}
+.cube b:nth-child(6){background:#DEDEDA}
+.cube b.tall{font-size:19px}
+/* པད 是两个字宽，33 会顶出 50 的骰面 */
+.cube b.wide{font-size:22px}
+.cube b:nth-child(1){transform:translateZ(25px)}
+.cube b:nth-child(2){transform:rotateY(90deg) translateZ(25px)}
+.cube b:nth-child(3){transform:rotateY(180deg) translateZ(25px)}
+.cube b:nth-child(4){transform:rotateY(270deg) translateZ(25px)}
+.cube b:nth-child(5){transform:rotateX(90deg) translateZ(25px)}
+.cube b:nth-child(6){transform:rotateX(-90deg) translateZ(25px)}
+
+/* 影子独立成元素，钉在落点的地面上：横向跟骰子走，纵向永不动，只由高度驱动大小与浓淡。
+   位移带 +7px，光从左上来的。它和骰子是两个元素——影子挂在不动层上是 v0.1「飘」的根源 */
+.sh{position:absolute; left:0; top:0; width:62px; height:18px; margin:-9px 0 0 -31px;
+  border-radius:50%; pointer-events:none; z-index:1;
+  background:radial-gradient(closest-side, rgba(27,27,26,.44), rgba(27,27,26,.15) 56%, transparent);
+  will-change:transform,opacity}
+
+
+/* 主按钮：全宽 52，暖黄底墨字 */
+.btn{display:flex; align-items:center; justify-content:center; width:100%; height:52px;
+  margin-top:22px; background:#4A4A46; color:#FAFAF7;
+  border:0; border-radius:10px; font:500 16px/1 var(--sans); letter-spacing:.04em;
+  cursor:pointer; transition:background .16s}
+.btn:hover{background:#3C3C39}
+/* 只许按一次：按下之后按钮就废了，得看得出来是废的，不是没反应 */
+.btn:disabled{opacity:.45; cursor:default}
+.btn:disabled:hover{background:#4A4A46}
+
+/* ── 手输 ─────────────────────────────────────────────────────────
+   备选路径，收在折叠里。原来是一行 13px 灰字，读作「页脚小字」而不是入口——
+   现在整行做成白卡：46 高、1px 描边、墨黑 14/500、右侧一个十字。
+   折展用首页同一套 details::details-content 高度过渡（靠 interpolate-size 把 auto 插值成像素），
+   不支持的浏览器自动退回直接展开，不会卡死。 */
+.manual{margin-top:12px; border:1px solid var(--line); border-radius:12px; background:var(--card)}
+.manual summary{list-style:none; display:flex; align-items:center; justify-content:space-between;
+  height:46px; padding:0 14px; cursor:pointer;
+  font:500 14px/1 var(--sans); letter-spacing:.02em; color:var(--ink)}
+.manual summary::-webkit-details-marker{display:none}
+.manual:hover{border-color:var(--slate)}
+.manual .plus{position:relative; flex:none; width:11px; height:11px; color:var(--ink)}
+.manual .plus::before,.manual .plus::after{content:""; position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%); background:currentColor; opacity:.6}
+.manual .plus::before{width:11px; height:1px}
+.manual .plus::after{width:1px; height:11px; transition:transform .18s}
+.manual[open] .plus::after{transform:translate(-50%,-50%) scaleY(0)}
+.manual::details-content{height:0; overflow:hidden;
+  transition:height .4s cubic-bezier(.2,.7,.3,1), content-visibility .4s;
+  transition-behavior:allow-discrete}
+.manual[open]::details-content{height:auto}
+.b{padding:2px 14px 14px}
+.pick{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px}
+.pick label{display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:0; aspect-ratio:1; background:var(--bg); border:1px solid var(--line);
+  border-radius:8px; cursor:pointer; transition:border-color .16s,background .16s}
+.pick label:hover{border-color:var(--slate)}
+/* 选中：墨框加粗到 2px（border 1 + inset 1，不占位、格子不跳），并提回卡片白底 */
+.pick label.on{border-color:var(--ink); background:var(--card); box-shadow:inset 0 0 0 1px var(--ink)}
+/* 藏文各字的墨迹高差很大（ༀ 带上圈、མ 只有半个字身、ཧཱུྃ 叠到 1.9 倍），
+   按行盒居中会让它们各自漂；改成「固定 30px 高 + 底部对齐」，
+   六个字的基线落在同一条线上，看起来才是一排 */
+.pick b{font:400 clamp(20px,7.4vw,30px)/1.35 var(--tib);
+  height:42px; display:flex; align-items:flex-end; justify-content:center}
+.pick b.tall{font-size:25px}
+.pick i{font-style:normal; font-size:11px; line-height:1.2; color:var(--ink2)}
+</style>
+
+<header class="bar">
+  <a class="back" href="gyask.html"><i>‹</i>返回</a>
+  <span class="tr">掷骰</span>
+</header>
+
+<p class="txt">一边口中叙述所问事宜，一边抛掷骰子。</p>
+
+<div class="stage" id="stage">
+  <i class="sh" id="shF"></i>
+  <div class="die" id="dieF"><div class="tilt"><div class="cube">
+    <b>ༀ</b><b>མ</b><b>ཎ</b><b class="wide">པད</b><b>མེ</b><b class="tall">ཧཱུྃ</b>
+  </div></div></div>
+</div>
+
+<button class="btn" id="btnThrow">掷　骰</button>
+
+<details class="manual">
+  <summary>已有骰面，直接查卦<span class="plus"></span></summary>
+  <div class="b">
+    <div class="pick">
+      <label><b>ༀ</b><i>嗡</i></label><label><b>མ</b><i>玛</i></label><label><b>ཎ</b><i>尼</i></label>
+      <label><b class="wide">པད</b><i>巴</i></label><label><b>མེ</b><i>美</i></label><label><b class="tall">ཧཱུྃ</b><i>吽</i></label>
+    </div>
+  </div>
+</details>
+
+<script>
+(function(){
+  /* 结果「朝上」，不是「朝正面」：俯视之后观众看的是顶面。
+     这张表是枚举 24 种朝向后筛出来的：条件是「该面朝上」且「该面的字在屏幕上正立」。
+     只满足朝上的解有 4 个，其中 3 个字是横躺或颠倒的（−103°/161°/77°）。 */
+  var BASE=[[90,0,0],[0,270,270],[270,0,180],[0,90,90],[0,0,0],[0,180,180]];
+  /* 棱长 50。ADV＝滚 90° 前进一个棱长；GY＝骰子中心到落点地面的距离，
+     25·(sin55°+cos55°)≈34。只有一枚，所以没有「第二枚晚 200ms」这件事 */
+  var HALF=25, ADV=50, GY=34;
+  /* 1.9s：下落 620 + 触地 70 + 弹 260 + 滚 380 + 收势 240 */
+  var TF=620, TIP=70, TB=260, TR=380, TS=240, END=TF+TIP+TB+TR+TS;
+  var RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var stage=document.getElementById("stage");
+  var man=document.querySelector(".manual");
+  /* thrown＝已经出过结果（掷过或手输报过），此后按钮与格子一律不再响应；
+     pick＝手输报上来的那一面，0 表示还没报 */
+  var thrown=false, pick=0, jump;
+  /* 所问从上一屏带过来，本屏不用，只负责原样交给卦象页 */
+  var Q=(new URLSearchParams(location.search).get("q")||"").trim();
+  /* 返回走上一屏，且把所问带回去 —— 直接回首页等于把用户问过的问题扔了 */
+  document.querySelector(".back").href="gyask.html"+(Q?"?q="+encodeURIComponent(Q):"");
+
+  function Die(el){
+    this.el=el; this.cube=el.querySelector(".cube");
+    this.sh=document.getElementById("sh"+el.id.slice(3));
+    this.v=1; this.net=0;
+  }
+  var die=new Die(document.getElementById("dieF"));
+
+  function face(o){var b=BASE[o.v-1];
+    return "rotateX("+b[0]+"deg) rotateY("+b[1]+"deg) rotateZ("+b[2]+"deg)";}
+
+  /* .cube 的 transform = rotateY(yaw) · rotateZ(roll−net) · BASE[v]
+     roll 是「滚了多少度」，net 是「停下时应该滚了多少度」。两者相减＝相对落定姿态的偏移，
+     所以停下（roll===net）时这一项归零，剩下纯 BASE，正好是正确的那一面朝上。
+     net=±90 意味着骰子从「再转 90° 才落定」的姿态着地，那一圈 90° 就是贴地滚的那一下。 */
+  function pose(o,x,y,roll,yaw){
+    o.el.style.transform="translate("+x.toFixed(1)+"px,"+y.toFixed(1)+"px)";
+    o.cube.style.transform="rotateY("+yaw.toFixed(1)+"deg) rotateZ("+(roll-o.net).toFixed(1)+
+      "deg) "+face(o);
+  }
+  /* 影子只认高度 h：越高越小越淡。纵向钉在落点地面，横向跟骰子 */
+  function shadow(o,x,gy,h){
+    var k=Math.max(.22,1-h/380);
+    o.sh.style.transform="translate("+(x+7).toFixed(1)+"px,"+gy.toFixed(1)+"px) scale("+k.toFixed(3)+")";
+    o.sh.style.opacity=Math.max(.08,.80-h/420).toFixed(3);
+  }
+
+  /* 落点：fx/fy 是滚完停下的中心，Lx 是着地点（先往后让出 ADV）。
+     dirs=+1 向右滚。θ>0 绕 tilt 的 z 轴转，投影到屏幕是「顶面向右倒」，也就是向左滚，
+     所以向右滚要用 net=−90。 */
+  function toss(o,val,fx,fy,dirs,t0){
+    o.v=val; o.net=-90*dirs;
+    var Lx=fx-ADV*dirs, gy=fy+GY, sY=-190;
+    if (RM){ pose(o,fx,fy,o.net,0); shadow(o,fx,gy,0); return; }
+
+    (function step(now){
+      var t=now-t0, p, x=Lx, y=0, roll=0, yaw=0, h=0;
+
+      if (t<TF){                                    /* 下落：从桌面上缘之外直落，略向左偏 */
+        p=t/TF;
+        var e=p*p;                                  /* 重力：越落越快 */
+        y=sY+(fy-sY)*e; x=Lx+44*(1-e);
+        roll=-1080+900*e; yaw=-170*(1-p)*(1-p);
+        h=fy-y;
+        pose(o,x,y,roll,yaw); shadow(o,x,gy,h);
+      } else if (t<TF+TIP){                          /* 触地：压一下，影子闪一下 */
+        p=(t-TF)/TIP;
+        pose(o,Lx,fy+4*Math.sin(Math.PI*p),-180,0);
+        shadow(o,Lx,gy,-2);
+      } else if (t<TF+TIP+TB){                       /* 弹起 30px，顺手把剩下 180° 转掉 */
+        p=(t-TF-TIP)/TB;
+        var b=Math.sin(Math.PI*p);
+        pose(o,Lx,fy-30*b,-180+180*p,0);
+        shadow(o,Lx,gy,30*b);
+      } else if (t<TF+TIP+TB+TR){                    /* 贴地滚 90°：翻多高就走多远 */
+        var th=o.net*(t-TF-TIP-TB)/TR;
+        var f=Math.abs(th)*Math.PI/180;
+        /* 绕底棱翻：中心横移 半个棱长×(1−cos+sin)，纵向上抬 25(|sin|+|cos|−1)。
+           90° 时位移正好一个棱长、抬升归零——滚完原地停住，不需要再补位 */
+        var ax=Lx+dirs*ADV*(1-Math.cos(f)+Math.sin(f))/2;
+        var lf=HALF*(Math.sin(f)+Math.cos(f)-1);
+        pose(o,ax,fy-lf,th,0); shadow(o,ax,gy,lf);
+      } else {                                       /* 收势：余晃 6° 再回正 */
+        p=Math.min(1,(t-TF-TIP-TB-TR)/TS);
+        pose(o,fx,fy,o.net+6*Math.sin(Math.PI*2*p)*(1-p),0);
+        shadow(o,fx,gy,0);
+        if (t>END){ return; }
+      }
+      requestAnimationFrame(step);
+    })(t0);
+  }
+
+  /* 桌面尺寸只在「手输收起时」量，量完既钉住高度、又缓存圆心与半径，之后谁都不许再改：
+     ① 高度：stage 的 flex:1 只在有剩余空间时撑满。手输一展开，剩余空间归零，它就退回
+        min-height，桌面被裁掉小半 —— 钉成定值，展开只许页面往下长，不许回头压矮桌面。
+     ② 尺寸：展开后页面长出竖滚动条，桌面预览里滚动条占 15px 布局宽，直径跟着缩 15px。
+        所以掷骰时读缓存、不重量 —— 圆桌才「固定死」。
+     量「撑满后的高」必须先把 height 清掉、逼一次回流，否则读到的是 min-height。 */
+  var G={x:0,y:0,r:0};
+  function layout(){
+    if (man.open) return;
+    stage.style.height="";
+    stage.style.height=stage.clientHeight+"px";
+    G.r=Math.min(stage.clientWidth,stage.clientHeight)/2-12;
+    G.x=stage.clientWidth/2; G.y=stage.clientHeight/2;
+    stage.style.setProperty("--d",(G.r*2)+"px");
+  }
+
+  /* 圆心往外让 46：骰子投影半宽 31，再留 15 呼吸 */
+  function dirOf(p,g){ return p.x<g.x?1:-1; }
+  /* 滚到头的中心必须仍在圆里，否则骰子会滚出桌面 */
+  function off(p,g,r){
+    var lx=p.x-ADV*dirOf(p,g);
+    return Math.sqrt((lx-g.x)*(lx-g.x)+(p.y-g.y)*(p.y-g.y))>r;
+  }
+  function ptIn(g,r){
+    var an=Math.random()*6.2832, d=r*Math.sqrt(Math.random());
+    return {x:g.x+d*Math.cos(an), y:g.y+d*Math.sin(an)};
+  }
+
+  /* 手输：用户现实里已经掷过，只差查表。所以不撒不滚，骰子从上方直落下来，
+     停在所报的那一面 —— 这是复现结果，不是再掷一次 */
+  function drop(o,val,fx,fy,t0){
+    o.v=val; o.net=0;
+    var gy=fy+GY, sY=-120, T=520;
+    if (RM){ pose(o,fx,fy,0,0); shadow(o,fx,gy,0); return; }
+    (function step(now){
+      var p=Math.min(1,(now-t0)/T);
+      if (p<1){
+        var e=p*p, y=sY+(fy-sY)*e;
+        pose(o,fx,y,0,0); shadow(o,fx,gy,fy-y);
+        requestAnimationFrame(step);
+      } else { pose(o,fx,fy,0,0); shadow(o,fx,gy,0); }
+    })(t0);
+  }
+
+  /* 结果只交一次。不锁的话，连按会把上一个跳转 clearTimeout 掉再重新计时，
+     每次都被推后 2 秒，永远到不了卦象页 —— 所以按下即废。 */
+  function once(){ document.getElementById("btnThrow").disabled=true; }
+  function go(n,delay){
+    clearTimeout(jump);
+    jump=setTimeout(function(){
+      /* 空的 q 不写 —— 和文殊掷骰页同一规矩，记录里的地址才干净 */
+      location.href="gygua.html?n="+n+(Q?"&q="+encodeURIComponent(Q):"");
+    }, delay);
+  }
+
+  /* 首屏：一枚骰子先摆在桌心。掷之前不显示任何结果倾向 —— 朝 ༀ */
+  function home(){
+    layout();
+    var g=G;
+    die.v=1; die.net=0;
+    pose(die,g.x,g.y,0,0);
+    shadow(die,g.x,g.y+GY,0);
+  }
+
+  document.getElementById("btnThrow").onclick=function(){
+    if (thrown) return;
+    thrown=true; once();
+    /* 手输报了面又改回真掷：把那半截作废，别留下一个高亮的格子 */
+    pick=0;
+    [].forEach.call(document.querySelectorAll(".pick label.on"), function(x){ x.classList.remove("on"); });
+    var g=G, r=g.r-46, rl=g.r-26, a, i;
+    /* 一枚骰子的落点只要两件事：滚到头的中心仍在圆里、别贴着圆边。 */
+    for (i=0;i<200;i++){
+      a=ptIn(g,r);
+      if (!off(a,g,rl)) break;
+    }
+    if (i>=200) a={x:g.x,y:g.y};
+    var t0=performance.now();
+    var n=1+(Math.random()*6|0);
+    toss(die, n, a.x, a.y, dirOf(a,g), t0);
+    /* 停稳后 2 秒自动进卦象：留给用户看骰面的时间。结果走 URL，不落存储 */
+    go(n, END+2000);
+  };
+
+  /* 手输：点一个藏文，骰子落到桌上、停在所报的那一面，格子加墨框。
+     一枚就够，报了即交结果；报错了再点一次即可 —— 覆盖旧的、重新计时。 */
+  var row=document.querySelector(".pick");
+  [].forEach.call(row.children, function(c,i){
+    c.onclick=function(){
+      if (thrown) return;
+      var g=G;
+      [].forEach.call(row.children, function(x){ x.classList.remove("on"); });
+      c.classList.add("on");
+      pick=i+1;
+      drop(die, pick, g.x, g.y, performance.now());
+      once(); go(pick, 2000);
+    };
+  });
+
+  /* 展开完再滑，不要边展开边滑：展开中量到的目标位置还在变，会滑不到位。
+     不用 transitionend —— 它挂在 ::details-content 伪元素上，投递不可靠（实测没触发），
+     一旦不投递就是静默失败。.timeout 与 CSS 的 .4s 对齐，不依赖事件 */
+  man.addEventListener("toggle", function(){
+    if (!man.open) return;
+    setTimeout(function(){
+      man.scrollIntoView({block:"end", behavior:"smooth"});
+    }, 420);
+  });
+
+  home();
+  addEventListener("resize", function(){ if(!thrown && !pick) home(); });
+})();
+</script>
